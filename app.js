@@ -9,17 +9,24 @@ let selectedSellId = null;
 
 const $ = (id) => document.getElementById(id);
 
-function money(n) {
-  const x = Number(n || 0);
-  return (
-    x.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
-    " €"
-  );
+function toNum(v) {
+  if (typeof v === "number") return v;
+  if (v === null || v === undefined) return 0;
+  const s = String(v).trim().replace(",", ".");
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : 0;
 }
-function num(n) {
-  const x = Number(n || 0);
+
+function money(v) {
+  const x = toNum(v);
+  return x.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+}
+
+function num(v) {
+  const x = toNum(v);
   return x.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
 
 /** ---------------- JSONP (CORS-frei) ---------------- **/
 
