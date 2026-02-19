@@ -118,8 +118,15 @@ function clearTables() {
 }
 
 function renderTables(rows) {
-  const stock = rows.filter((r) => r.status === "IN_STOCK" && toNum(r.gewicht) > 0);
-  const sold = rows.filter((r) => r.status === "SOLD");
+  const stock = rows.filter((r) => {
+  const status = String(r.status || "").trim().toUpperCase();
+  return status === "IN_STOCK" && toNum(r.gewicht) > 0;
+});
+
+const sold = rows.filter((r) => {
+  const status = String(r.status || "").trim().toUpperCase();
+  return status === "SOLD";
+});
 
   // Bestand
   const tb1 = $("stockTable").querySelector("tbody");
