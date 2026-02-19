@@ -118,7 +118,7 @@ function clearTables() {
 }
 
 function renderTables(rows) {
-  const stock = rows.filter((r) => r.status === "IN_STOCK" && Number(r.gewicht) > 0);
+  const stock = rows.filter((r) => r.status === "IN_STOCK" && toNum(r.gewicht) > 0);
   const sold = rows.filter((r) => r.status === "SOLD");
 
   // Bestand
