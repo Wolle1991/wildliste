@@ -16,6 +16,71 @@ function num(n) {
   return x.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/** ---------------- JSONP (CORS-frei) ---------------- **/
+
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cbName = "cb_" + Math.random().toString(36).slice(2);
+    const script = document.createElement("script");
+    const sep = url.includes("?") ? "&" : "?";
+    script.src = url + sep + "callback=" + cbName;
+
+    window[cbName] = (data) => {
+      try {
+        delete window[cbName];
+      } catch {}
+      script.remove();
+      resolve(data);
+    };
+
+    script.onerror = () => {
+      try {
+        delete window[cbName];
+      } catch {}
+      script.remove();
+      reject(new Error("Failed to fetch (JSONP)"));
+    };
+
+    document.body.appendChild(script);
+  });
+}
+
+async function apiList() {
+  const url = new URL(API_URL);
+  url.searchParams.set("action", "list");
+  url.searchParams.set("auth", authToken);
+  const data = await jsonp(url.toString());
+  if (!data.ok) throw new Error(data.error || "API Fehler");
+  return data.rows;
+}
+
+async function apiAdd({ tier, teil, gewicht, preis }) {
+  const url = new URL(API_URL);
+  url.searchParams.set("action", "add");
+  url.searchParams.set("auth", authToken);
+  url.searchParams.set("tier", tier);
+  url.searchParams.set("teil", teil);
+  url.searchParams.set("gewicht", String(gewicht));
+  url.searchParams.set("preis", String(preis));
+  const data = await jsonp(url.toString());
+  if (!data.ok) throw new Error(data.error || "API Fehler");
+  return data;
+}
+
+async function apiSell({ id, kunde, bezahlt }) {
+  const url = new URL(API_URL);
+  url.searchParams.set("action", "sell");
+  url.searchParams.set("auth", authToken);
+  url.searchParams.set("id", id);
+  url.searchParams.set("kunde", kunde || "");
+  url.searchParams.set("bezahlt", bezahlt ? "JA" : "NEIN");
+  const data = await jsonp(url.toString());
+  if (!data.ok) throw new Error(data.error || "API Fehler");
+  return data;
+}
+
+/** ---------------- UI / Rendering ---------------- **/
+
 function setLoggedIn(label) {
   $("userInfo").textContent = `Eingeloggt: ${label}`;
   $("logoutBtn").style.display = "";
@@ -31,27 +96,6 @@ function setLoggedOut() {
   $("refreshBtn").disabled = true;
   $("addBtn").disabled = true;
   $("sellBtn").disabled = true;
-}
-
-async function apiGetAll() {
-  const url = new URL(API_URL);
-  url.searchParams.set("auth", authToken);
-  const res = await fetch(url.toString());
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.error || "API Fehler");
-  return data.rows;
-}
-
-async function apiPost(payload) {
-  payload.auth = authToken;
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.error || "API Fehler");
-  return data;
 }
 
 function renderTables(rows) {
@@ -106,17 +150,19 @@ function renderTables(rows) {
 async function refresh() {
   $("addMsg").textContent = "";
   $("sellMsg").textContent = "";
-  const rows = await apiGetAll();
+  const rows = await apiList();
   renderTables(rows);
 }
+
+/** ---------------- Google Login ---------------- **/
 
 function initGoogleLogin() {
   google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
     callback: async (response) => {
       try {
-        authToken = response.credential; // Google ID Token
-        await refresh();                // Server prüft Whitelist (users-Sheet)
+        authToken = response.credential;   // Google ID Token
+        await refresh();                  // Server prüft Whitelist (users-Sheet)
         setLoggedIn("Google");
       } catch (e) {
         setLoggedOut();
@@ -127,6 +173,8 @@ function initGoogleLogin() {
 
   google.accounts.id.renderButton($("gbtn"), { theme: "outline", size: "large", text: "signin_with" });
 }
+
+/** ---------------- Button Handlers ---------------- **/
 
 $("refreshBtn").addEventListener("click", () => refresh());
 
@@ -149,11 +197,13 @@ $("addBtn").addEventListener("click", async () => {
     if (!gewicht || gewicht <= 0) throw new Error("Bitte gültiges Gewicht eingeben.");
     if (!preis || preis <= 0) throw new Error("Bitte gültigen Preis eingeben.");
 
-    await apiPost({ action: "add", tier, teil, gewicht, preis });
+    await apiAdd({ tier, teil, gewicht, preis });
+
     $("addMsg").textContent = "✅ Eingelagert.";
     $("teil").value = "";
     $("gewicht").value = "";
     $("preis").value = "";
+
     await refresh();
   } catch (e) {
     $("addMsg").textContent = "❌ " + e.message;
@@ -169,19 +219,22 @@ $("sellBtn").addEventListener("click", async () => {
     const kunde = $("kunde").value.trim();
     const bezahlt = $("bezahlt").checked;
 
-    await apiPost({ action: "sell", id: selectedSellId, kunde, bezahlt });
+    await apiSell({ id: selectedSellId, kunde, bezahlt });
 
     $("sellMsg").textContent = "✅ Als verkauft gespeichert.";
     $("kunde").value = "";
     $("bezahlt").checked = false;
+
     selectedSellId = null;
     $("sellId").textContent = "—";
     $("sellLabel").textContent = "—";
+
     await refresh();
   } catch (e) {
     $("sellMsg").textContent = "❌ " + e.message;
   }
 });
 
+/** ---------------- Start ---------------- **/
 setLoggedOut();
 initGoogleLogin();
