@@ -2,7 +2,7 @@
 const API_URL = "https://script.google.com/macros/s/AKfycby6w1PI-UOoL9_Mk8vCz4ySFVQ29eDFE-cCt6jmKLbAtDXhyH5pFa5OYnpISe_JeSlB/exec";
 const GOOGLE_CLIENT_ID = "157730272233-v5a1cq7839rrp3rr26qmo8fn4s4o4099.apps.googleusercontent.com";
 
-let authToken = null;
+let authToken = response.credential;
 let selectedSellId = null;
 
 const $ = (id) => document.getElementById(id);
