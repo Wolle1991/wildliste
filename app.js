@@ -1,6 +1,8 @@
 // ✅ bereits für dich eingetragen:
-const API_URL = "https://script.google.com/macros/s/AKfycby6w1PI-UOoL9_Mk8vCz4ySFVQ29eDFE-cCt6jmKLbAtDXhyH5pFa5OYnpISe_JeSlB/exec";
-const GOOGLE_CLIENT_ID = "157730272233-v5a1cq7839rrp3rr26qmo8fn4s4o4099.apps.googleusercontent.com";
+const API_URL =
+  "https://script.google.com/macros/s/AKfycby6w1PI-UOoL9_Mk8vCz4ySFVQ29eDFE-cCt6jmKLbAtDXhyH5pFa5OYnpISe_JeSlB/exec";
+const GOOGLE_CLIENT_ID =
+  "157730272233-v5a1cq7839rrp3rr26qmo8fn4s4o4099.apps.googleusercontent.com";
 
 let authToken = null;
 let selectedSellId = null;
@@ -9,7 +11,10 @@ const $ = (id) => document.getElementById(id);
 
 function money(n) {
   const x = Number(n || 0);
-  return x.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+  return (
+    x.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+    " €"
+  );
 }
 function num(n) {
   const x = Number(n || 0);
@@ -26,13 +31,17 @@ function jsonp(url) {
     script.src = url + sep + "callback=" + cbName;
 
     window[cbName] = (data) => {
-      try { delete window[cbName]; } catch {}
+      try {
+        delete window[cbName];
+      } catch {}
       script.remove();
       resolve(data);
     };
 
     script.onerror = () => {
-      try { delete window[cbName]; } catch {}
+      try {
+        delete window[cbName];
+      } catch {}
       script.remove();
       reject(new Error("Failed to fetch (JSONP)"));
     };
@@ -44,7 +53,7 @@ function jsonp(url) {
 async function apiList() {
   const url = new URL(API_URL);
   url.searchParams.set("action", "list");
-  url.searchParams.set("idtoken", authToken); // ✅ idtoken statt auth
+  url.searchParams.set("idtoken", authToken); // ✅ idtoken
   const data = await jsonp(url.toString());
   if (!data.ok) throw new Error(data.error || "API Fehler");
   return data.rows;
@@ -94,14 +103,21 @@ function setLoggedOut() {
   $("sellBtn").disabled = true;
 }
 
+function clearTables() {
+  $("stockTable").querySelector("tbody").innerHTML = "";
+  $("soldTable").querySelector("tbody").innerHTML = "";
+  $("sellId").textContent = "—";
+  $("sellLabel").textContent = "—";
+}
+
 function renderTables(rows) {
-  const stock = rows.filter(r => r.status === "IN_STOCK" && Number(r.gewicht) > 0);
-  const sold  = rows.filter(r => r.status === "SOLD");
+  const stock = rows.filter((r) => r.status === "IN_STOCK" && Number(r.gewicht) > 0);
+  const sold = rows.filter((r) => r.status === "SOLD");
 
   // Bestand
   const tb1 = $("stockTable").querySelector("tbody");
   tb1.innerHTML = "";
-  stock.forEach(r => {
+  stock.forEach((r) => {
     const tr = document.createElement("tr");
     tr.className = "rowbtn";
     tr.title = "Zum Verkaufen auswählen";
@@ -115,7 +131,9 @@ function renderTables(rows) {
     tr.addEventListener("click", () => {
       selectedSellId = r.id;
       $("sellId").textContent = r.id;
-      $("sellLabel").textContent = `${r.tier} – ${r.teil} – ${num(r.gewicht)} kg – ${money(r.gesamt)}`;
+      $("sellLabel").textContent = `${r.tier} – ${r.teil} – ${num(r.gewicht)} kg – ${money(
+        r.gesamt
+      )}`;
       $("sellMsg").textContent = "";
     });
     tb1.appendChild(tr);
@@ -125,8 +143,8 @@ function renderTables(rows) {
   const tb2 = $("soldTable").querySelector("tbody");
   tb2.innerHTML = "";
   sold
-    .sort((a,b) => new Date(b.datum || 0) - new Date(a.datum || 0))
-    .forEach(r => {
+    .sort((a, b) => new Date(b.datum || 0) - new Date(a.datum || 0))
+    .forEach((r) => {
       const dt = r.datum ? new Date(r.datum).toLocaleString("de-DE") : "";
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -157,7 +175,8 @@ function waitForGoogle(maxMs = 15000) {
     const start = Date.now();
     const tick = () => {
       if (window.google && google.accounts && google.accounts.id) return resolve();
-      if (Date.now() - start > maxMs) return reject(new Error("Google Login Script lädt nicht (blockiert?)"));
+      if (Date.now() - start > maxMs)
+        return reject(new Error("Google Login Script lädt nicht (blockiert?)"));
       setTimeout(tick, 100);
     };
     tick();
@@ -166,33 +185,37 @@ function waitForGoogle(maxMs = 15000) {
 
 async function initGoogleLogin() {
   try {
-    // Falls das Script langsam ist: warten bis es da ist
     await waitForGoogle();
 
     google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
-      callback: async (response) => {
+      callback: async (resp) => {
         try {
-          authToken = (response && response.credential) ? String(response.credential) : "";
-          if (!authToken) throw new Error("Kein Token von Google erhalten.");
+          const token = resp && resp.credential ? String(resp.credential) : "";
+          if (!token) throw new Error("Kein Token von Google erhalten.");
 
-          await refresh();                 // Server prüft Whitelist (users-Sheet)
+          authToken = token;
+          await refresh(); // Server prüft Whitelist (users-Sheet)
           setLoggedIn("Google");
         } catch (e) {
           setLoggedOut();
+          clearTables();
           alert("Login ok, aber keine Berechtigung oder Fehler: " + e.message);
         }
       },
     });
 
     // Button rendern
-    $("gbtn").innerHTML = ""; // falls Reload / doppelt
-    google.accounts.id.renderButton($("gbtn"), { theme: "outline", size: "large", text: "signin_with" });
-
+    $("gbtn").innerHTML = "";
+    google.accounts.id.renderButton($("gbtn"), {
+      theme: "outline",
+      size: "large",
+      text: "signin_with",
+    });
   } catch (e) {
-    // Wenn z.B. iOS Tracking/Adblock Google blockt
     $("userInfo").textContent = "Login nicht verfügbar";
-    $("gbtn").innerHTML = `<div style="color:#b00;">Google Login konnte nicht geladen werden. Prüfe Adblock/Tracking-Schutz oder öffne die Seite in einem anderen Browser.</div>`;
+    $("gbtn").innerHTML =
+      "<div style='color:#b00; font-size:13px;'>Google Login konnte nicht geladen werden. Prüfe Adblock/Tracking-Schutz oder nutze einen anderen Browser.</div>";
   }
 }
 
@@ -202,10 +225,7 @@ $("refreshBtn").addEventListener("click", () => refresh());
 
 $("logoutBtn").addEventListener("click", () => {
   setLoggedOut();
-  $("stockTable").querySelector("tbody").innerHTML = "";
-  $("soldTable").querySelector("tbody").innerHTML = "";
-  $("sellId").textContent = "—";
-  $("sellLabel").textContent = "—";
+  clearTables();
 });
 
 $("addBtn").addEventListener("click", async () => {
