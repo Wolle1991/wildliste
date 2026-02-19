@@ -118,6 +118,7 @@ function clearTables() {
 }
 
 function renderTables(rows) {
+  console.log("ROWS ANZAHL:", rows.length, rows[0]);
   const stock = rows.filter((r) => {
   const status = String(r.status || "").trim().toUpperCase();
   return status === "IN_STOCK" && toNum(r.gewicht) > 0;
