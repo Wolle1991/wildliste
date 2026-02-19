@@ -2,7 +2,7 @@
 const API_URL = "https://script.google.com/macros/s/AKfycby6w1PI-UOoL9_Mk8vCz4ySFVQ29eDFE-cCt6jmKLbAtDXhyH5pFa5OYnpISe_JeSlB/exec";
 const GOOGLE_CLIENT_ID = "157730272233-v5a1cq7839rrp3rr26qmo8fn4s4o4099.apps.googleusercontent.com";
 
-let authToken = response.credential;
+let authToken = null;
 let selectedSellId = null;
 
 const $ = (id) => document.getElementById(id);
@@ -26,17 +26,13 @@ function jsonp(url) {
     script.src = url + sep + "callback=" + cbName;
 
     window[cbName] = (data) => {
-      try {
-        delete window[cbName];
-      } catch {}
+      try { delete window[cbName]; } catch {}
       script.remove();
       resolve(data);
     };
 
     script.onerror = () => {
-      try {
-        delete window[cbName];
-      } catch {}
+      try { delete window[cbName]; } catch {}
       script.remove();
       reject(new Error("Failed to fetch (JSONP)"));
     };
@@ -48,7 +44,7 @@ function jsonp(url) {
 async function apiList() {
   const url = new URL(API_URL);
   url.searchParams.set("action", "list");
-  url.searchParams.set("idtoken", authToken);
+  url.searchParams.set("idtoken", authToken); // ✅ idtoken statt auth
   const data = await jsonp(url.toString());
   if (!data.ok) throw new Error(data.error || "API Fehler");
   return data.rows;
@@ -154,24 +150,50 @@ async function refresh() {
   renderTables(rows);
 }
 
-/** ---------------- Google Login ---------------- **/
+/** ---------------- Google Login (robust) ---------------- **/
 
-function initGoogleLogin() {
-  google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: async (response) => {
-      try {
-        authToken = response.credential;   // Google ID Token
-        await refresh();                  // Server prüft Whitelist (users-Sheet)
-        setLoggedIn("Google");
-      } catch (e) {
-        setLoggedOut();
-        alert("Login ok, aber keine Berechtigung oder Fehler: " + e.message);
-      }
-    },
+function waitForGoogle(maxMs = 15000) {
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    const tick = () => {
+      if (window.google && google.accounts && google.accounts.id) return resolve();
+      if (Date.now() - start > maxMs) return reject(new Error("Google Login Script lädt nicht (blockiert?)"));
+      setTimeout(tick, 100);
+    };
+    tick();
   });
+}
 
-  google.accounts.id.renderButton($("gbtn"), { theme: "outline", size: "large", text: "signin_with" });
+async function initGoogleLogin() {
+  try {
+    // Falls das Script langsam ist: warten bis es da ist
+    await waitForGoogle();
+
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: async (response) => {
+        try {
+          authToken = (response && response.credential) ? String(response.credential) : "";
+          if (!authToken) throw new Error("Kein Token von Google erhalten.");
+
+          await refresh();                 // Server prüft Whitelist (users-Sheet)
+          setLoggedIn("Google");
+        } catch (e) {
+          setLoggedOut();
+          alert("Login ok, aber keine Berechtigung oder Fehler: " + e.message);
+        }
+      },
+    });
+
+    // Button rendern
+    $("gbtn").innerHTML = ""; // falls Reload / doppelt
+    google.accounts.id.renderButton($("gbtn"), { theme: "outline", size: "large", text: "signin_with" });
+
+  } catch (e) {
+    // Wenn z.B. iOS Tracking/Adblock Google blockt
+    $("userInfo").textContent = "Login nicht verfügbar";
+    $("gbtn").innerHTML = `<div style="color:#b00;">Google Login konnte nicht geladen werden. Prüfe Adblock/Tracking-Schutz oder öffne die Seite in einem anderen Browser.</div>`;
+  }
 }
 
 /** ---------------- Button Handlers ---------------- **/
