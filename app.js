@@ -8,6 +8,10 @@ let authToken = null;
 let selectedSellId = null;
 
 const $ = (id) => document.getElementById(id);
+function debug(msg) {
+  const el = document.getElementById("debug");
+  if (el) el.textContent = String(msg);
+}
 
 function toNum(v) {
   if (typeof v === "number") return v;
@@ -177,11 +181,14 @@ const sold = rows.filter((r) => {
 }
 
 async function refresh() {
+  debug("refresh() startet...");
   $("addMsg").textContent = "";
   $("sellMsg").textContent = "";
   const rows = await apiList();
+  debug("rows geladen: " + rows.length);
   renderTables(rows);
 }
+
 
 /** ---------------- Google Login (robust) ---------------- **/
 
