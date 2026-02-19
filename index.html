@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wildliste</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 16px; }
+    .top { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    table { width:100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { text-align:left; background:#f6f6f6; }
+    .pill { padding:2px 8px; border-radius: 999px; border:1px solid #ddd; font-size: 12px; }
+    .rowbtn { cursor:pointer; }
+    .grid { display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 12px; }
+    input, select, button { padding:10px; font-size: 16px; width: 100%; box-sizing: border-box; }
+    button { cursor:pointer; }
+    .card { border:1px solid #ddd; border-radius: 10px; padding: 12px; }
+    .muted { color:#666; font-size: 13px; }
+  </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="top">
+    <h2 style="margin:0;">Wildliste</h2>
+    <span id="userInfo" class="pill">Nicht eingeloggt</span>
+    <div id="gbtn"></div>
+    <button id="logoutBtn" style="display:none;">Logout</button>
+    <button id="refreshBtn" disabled>Aktualisieren</button>
+  </div>
+
+  <p class="muted" style="margin-top:10px;">
+    Tipp: Im <b>Bestand</b> eine Zeile antippen → rechts bei <b>Verkauf</b> erscheint sie.
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <h3 style="margin-top:0;">Neues Stück einlagern</h3>
+      <label class="muted">Tier</label>
+      <select id="tier">
+        <option>Sau</option>
+        <option>Reh</option>
+        <option>Hirsch</option>
+      </select>
+
+      <label class="muted" style="margin-top:8px;">Teilstück</label>
+      <input id="teil" placeholder="z.B. Keule, Rücken, Gulasch" />
+
+      <label class="muted" style="margin-top:8px;">Gewicht (kg)</label>
+      <input id="gewicht" type="number" step="0.01" placeholder="z.B. 2.13" />
+
+      <label class="muted" style="margin-top:8px;">Preis (€/kg)</label>
+      <input id="preis" type="number" step="0.01" placeholder="z.B. 19" />
+
+      <button id="addBtn" disabled style="margin-top:10px;">Einlagern</button>
+      <div id="addMsg" class="muted" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Verkauf</h3>
+      <div class="muted">Artikel-ID</div>
+      <div><b id="sellId">—</b></div>
+
+      <div class="muted" style="margin-top:8px;">Auswahl</div>
+      <div id="sellLabel">—</div>
+
+      <label class="muted" style="margin-top:10px;">Kunde</label>
+      <input id="kunde" placeholder="Name / Kürzel" />
+
+      <label style="display:flex; gap:8px; align-items:center; margin-top:10px;">
+        <input id="bezahlt" type="checkbox" style="width:auto;" />
+        <span>Bezahlt</span>
+      </label>
+
+      <button id="sellBtn" disabled style="margin-top:10px;">Als verkauft markieren</button>
+      <div id="sellMsg" class="muted" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:18px;">Bestand</h3>
+  <table id="stockTable">
+    <thead>
+      <tr>
+        <th>Tier</th><th>Teilstück</th><th>kg</th><th>€/kg</th><th>Gesamt</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h3 style="margin-top:18px;">Historie (verkauft)</h3>
+  <table id="soldTable">
+    <thead>
+      <tr>
+        <th>Tier</th><th>Teilstück</th><th>kg</th><th>€</th><th>Verkäufer</th><th>Kunde</th><th>Bezahlt</th><th>Datum</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script src="./app.js"></script>
+</body>
+</html>
