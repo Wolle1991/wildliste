@@ -48,7 +48,7 @@ function jsonp(url) {
 async function apiList() {
   const url = new URL(API_URL);
   url.searchParams.set("action", "list");
-  url.searchParams.set("auth", authToken);
+  url.searchParams.set("idtoken", authToken);
   const data = await jsonp(url.toString());
   if (!data.ok) throw new Error(data.error || "API Fehler");
   return data.rows;
@@ -57,7 +57,7 @@ async function apiList() {
 async function apiAdd({ tier, teil, gewicht, preis }) {
   const url = new URL(API_URL);
   url.searchParams.set("action", "add");
-  url.searchParams.set("auth", authToken);
+  url.searchParams.set("idtoken", authToken);
   url.searchParams.set("tier", tier);
   url.searchParams.set("teil", teil);
   url.searchParams.set("gewicht", String(gewicht));
@@ -70,7 +70,7 @@ async function apiAdd({ tier, teil, gewicht, preis }) {
 async function apiSell({ id, kunde, bezahlt }) {
   const url = new URL(API_URL);
   url.searchParams.set("action", "sell");
-  url.searchParams.set("auth", authToken);
+  url.searchParams.set("idtoken", authToken);
   url.searchParams.set("id", id);
   url.searchParams.set("kunde", kunde || "");
   url.searchParams.set("bezahlt", bezahlt ? "JA" : "NEIN");
